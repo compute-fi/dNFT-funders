@@ -11,3 +11,6 @@
 	path = lib/foundry-chainlink-toolkit
 	url = https://github.com/smartcontractkit/foundry-chainlink-toolkit
 	branch = feature/integration-automation
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
