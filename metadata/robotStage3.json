@@ -1,0 +1,15 @@
+{
+    "name": "Level 3",
+    "description": "This robot can work 24/7 if it has to.",
+    "image": "https://ipfs.io/ipfs/QmVqEMZ1tEVZSMoM5a51DPTt8PRoowam3HLPntx8nvawDV?filename=robot%20lvl%203.png",
+    "attributes": [
+        {
+            "trait-type": "ActivityStage",
+            "value": "Stage3"
+        },
+        {
+            "trait-type": "Compute",
+            "value": "UNKNOWN"
+        }
+    ]
+}

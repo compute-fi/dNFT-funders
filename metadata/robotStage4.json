@@ -1,0 +1,15 @@
+{
+    "name": "Level 4",
+    "description": "Automated workfoce never sleeps.",
+    "image": "https://ipfs.io/ipfs/QmQVCveL5AagYLHNhEzM5k6Qjq42T1hHEjMDrSbFwi9Mz6?filename=robot%20lvl%204.png",
+    "attributes": [
+        {
+            "trait-type": "ActivityStage",
+            "value": "Stage4"
+        },
+        {
+            "trait-type": "Compute",
+            "value": "UNKNOWN"
+        }
+    ]
+}

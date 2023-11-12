@@ -1,0 +1,15 @@
+{
+    "name": "Level 1",
+    "description": "This robot has a small bit of daily energy.",
+    "image": "https://ipfs.io/ipfs/QmazKCWaeKWedRtNvFhrXAbyeWtjDXhNjpL1UykyBe5ZaB?filename=robot%20lvl%201.png",
+    "attributes": [
+        {
+            "trait-type": "ActivityStage",
+            "value": "Stage1"
+        },
+        {
+            "trait-type": "Compute",
+            "value": "UNKNOWN"
+        }
+    ]
+}

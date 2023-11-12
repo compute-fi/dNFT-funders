@@ -1,0 +1,15 @@
+{
+    "name": "Resting",
+    "description": "This robot will activate with more yield for compute.",
+    "image": "https://ipfs.io/ipfs/QmeDfdFL2VkGuAm77NDnSoaZE1h8XQKjvc51148gHMmnb3?filename=robot%20rest.png",
+    "attributes": [
+        {
+            "trait-type": "ActivityStage",
+            "value": "Stage0"
+        },
+        {
+            "trait-type": "Compute",
+            "value": "UNKNOWN"
+        }
+    ]
+}
