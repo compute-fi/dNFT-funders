@@ -5,8 +5,9 @@ import "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-contract dynNFT is ERC721, ERC721URIStorage, Ownable {
+contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     uint256 private _nextTokenId;
     mapping(uint256 => uint256) private fundSizes; // Mapping to store fund sizes for each NFT
 
@@ -19,9 +20,12 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
         "https://ipfs.io/ipfs/QmSnZsz8BMbnXwavL5PDWgFyxDAoNbwxtuvbxxhtumaXFC?filename=robotStage4.json"
     ];
 
-    constructor(
-        address initialOwner
-    ) ERC721("dNFTs", "dNFT") Ownable(initialOwner) {
+    // Events
+    event Minted(address indexed to, uint256 indexed tokenId);
+    event LevelUpdated(uint256 indexed tokenId, uint256 newLevel);
+    event FundSizeChanged(uint256 indexed tokenId, uint256 newFundSize);
+
+    constructor() ERC721("dNFTs", "dNFT") Ownable(msg.sender) {
         _nextTokenId = 1;
     }
 
@@ -48,12 +52,16 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, IpfsUri[0]);
         fundSizes[tokenId] = 0; // Initialize fund size for new NFT
+
+        emit Minted(to, tokenId);
     }
 
-    uint256 private mockFundSize = 0.1 ether;
+    uint256 private mockFundSize = 0 ether;
 
     function setMockFundSize(uint256 _size) public onlyOwner {
         mockFundSize = _size;
+
+        emit FundSizeChanged(0, mockFundSize);
     }
 
     function checkFundSize(
@@ -71,6 +79,8 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
         if (checkRobotlvl(tokenId) != newLevel) {
             _setTokenURI(tokenId, IpfsUri[newLevel]);
             fundSizes[tokenId] = fundSize; // Update stored fund size
+
+            emit LevelUpdated(tokenId, newLevel);
         }
     }
 
@@ -113,7 +123,58 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
             keccak256(abi.encodePacked((b))));
     }
 
+    // This function will return an array of token IDs owned by a given address
+    function tokensOwnedBy(
+        address owner
+    ) public view returns (uint256[] memory) {
+        uint256 tokenCount = balanceOf(owner);
+        uint256[] memory tokensId = new uint256[](tokenCount);
+        for (uint256 i = 0; i < tokenCount; i++) {
+            tokensId[i] = tokenOfOwnerByIndex(owner, i);
+        }
+        return tokensId;
+    }
+
+    // function returns the number of NFTs owned by a specific address
+    function ownsAnyNFT(address owner) public view returns (bool) {
+        return balanceOf(owner) > 0;
+    }
+
+    // function is used to check the owner of a specific NFT, identified by its tokenId
+    function ownsSpecificNFT(
+        address owner,
+        uint256 tokenId
+    ) public view returns (bool) {
+        try this.ownerOf(tokenId) returns (address tokenOwner) {
+            return owner == tokenOwner;
+        } catch {
+            return false;
+        }
+    }
+
+    function getIpfsUriAtIndex(
+        uint256 index
+    ) public view returns (string memory) {
+        require(index < IpfsUri.length, "Index out of bounds");
+        return IpfsUri[index];
+    }
+
     // The following functions are overrides required by Solidity.
+
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override(ERC721, ERC721Enumerable) returns (address) {
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(
+        address account,
+        uint128 value
+    ) internal override(ERC721, ERC721Enumerable) {
+        super._increaseBalance(account, value);
+    }
 
     function tokenURI(
         uint256 tokenId
@@ -123,7 +184,12 @@ contract dynNFT is ERC721, ERC721URIStorage, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721, ERC721URIStorage) returns (bool) {
+    )
+        public
+        view
+        override(ERC721, ERC721Enumerable, ERC721URIStorage)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 }
