@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import {Script, console} from "forge-std/Script.sol";
+import {LinkTokenInterface} from "lib/foundry-chainlink-toolkit/lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+
+// Define your AutomationRegistrarInterface path correctly
+import {AutomationRegistryInterface} from "lib/foundry-chainlink-toolkit/lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AutomationRegistryInterface2_0.sol";
+
+contract ChainlinkAutomationScript is Script {
+    LinkTokenInterface public immutable i_link;
+    AutomationRegistryInterface public immutable i_registrar;
+
+    struct RegistrationParams {
+        string name;
+        bytes encryptedEmail;
+        address upkeepContract;
+        uint32 gasLimit;
+        address adminAddress;
+        uint8 triggerType;
+        bytes checkData;
+        bytes triggerConfig;
+        bytes offchainConfig;
+        uint96 amount;
+    }
+
+    constructor(
+        LinkTokenInterface link,
+        AutomationRegistryInterface registrar
+    ) {
+        i_link = link;
+        i_registrar = registrar;
+    }
+
+    function registerUpkeep(RegistrationParams memory params) public {
+        // Approve LINK transfer
+        i_link.approve(address(i_registrar), params.amount);
+
+        // Register upkeep
+        uint256 upkeepID = i_registrar.registerUpkeep(
+            params.name,
+            params.upkeepContract,
+            params.gasLimit,
+            params.adminAddress,
+            params.amount
+        );
+        if (upkeepID == 0) {
+            revert("Registration failed or auto-approve disabled");
+        }
+        console.log("Upkeep registered with ID: ", upkeepID);
+    }
+
+    function run() external {
+        // Define your RegistrationParams here
+        RegistrationParams memory params = RegistrationParams({
+            name: "Test Upkeep",
+            encryptedEmail: "",
+            upkeepContract: address(this), // Replace with your contract address
+            gasLimit: 500000,
+            adminAddress: msg.sender,
+            triggerType: 0,
+            checkData: "",
+            triggerConfig: "",
+            offchainConfig: "",
+            amount: 1 ether // Adjust the amount as needed
+        });
+
+        registerUpkeep(params);
+    }
+}

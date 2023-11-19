@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@chainlink/contracts/src/v0.8/AutomationBase.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
-contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
+contract dynNFT is
+    ERC721,
+    ERC721Enumerable,
+    ERC721URIStorage,
+    Ownable,
+    AutomationCompatible
+{
     uint256 private _nextTokenId;
     mapping(uint256 => uint256) private fundSizes; // Mapping to store fund sizes for each NFT
 
@@ -31,9 +40,14 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     function checkUpkeep(
         bytes calldata /* checkData */
-    ) external view returns (bool upkeepNeeded, bytes memory performData) {
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
         for (uint256 i = 1; i < _nextTokenId; i++) {
-            uint256 currentFundSize = checkFundSize(i);
+            uint256 currentFundSize = checkNewMockFundSize(i);
             if (currentFundSize != fundSizes[i]) {
                 return (true, abi.encode(i));
             }
@@ -41,8 +55,10 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         return (false, bytes(""));
     }
 
-    function performUpkeep(bytes calldata performData) external {
+    function performUpkeep(bytes calldata performData) external override {
         uint256 tokenId = abi.decode(performData, (uint256));
+        uint256 newFundSize = mockFundSizes[tokenId];
+        fundSizes[tokenId] = newFundSize; // Update fundSize with the value from mockFundSize
         setRobotLvl(tokenId);
     }
 
@@ -52,33 +68,35 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, IpfsUri[0]);
         fundSizes[tokenId] = 0; // Initialize fund size for new NFT
+        mockFundSizes[tokenId] = 0; // Initialize mock fund size for new NFT
 
         emit Minted(to, tokenId);
     }
 
-    uint256 private mockFundSize = 0 ether;
+    function publicMint() public payable {
+        require(msg.value == 0.1 ether, "Minting fee is 0.1 ETH");
+        uint256 tokenId = _nextTokenId;
+        _nextTokenId++;
+        _safeMint(msg.sender, tokenId);
+        _setTokenURI(tokenId, IpfsUri[0]);
+        fundSizes[tokenId] = 0; // Initialize fund size for new NFT
+        mockFundSizes[tokenId] = 0; // Initialize mock fund size for new NFT
 
-    function setMockFundSize(uint256 _size) public onlyOwner {
-        mockFundSize = _size;
-
-        emit FundSizeChanged(0, mockFundSize);
+        emit Minted(msg.sender, tokenId);
     }
 
-    function checkFundSize(
-        uint256 /* tokenId */
-    ) public view returns (uint256) {
-        // Implement logic to check the actual fund size of the NFT
-        // This is a mock implementation
-        return mockFundSize;
+    function checkFundSize(uint256 tokenId) public view returns (uint256) {
+        require(ownerOf(tokenId) != address(0), "Token ID does not exist");
+        return fundSizes[tokenId];
     }
 
     function setRobotLvl(uint256 tokenId) public {
-        uint256 fundSize = checkFundSize(tokenId);
+        uint256 fundSize = fundSizes[tokenId]; // fundSizes gets updated in performUpkeep
         uint256 newLevel = determineLevel(fundSize);
 
         if (checkRobotlvl(tokenId) != newLevel) {
             _setTokenURI(tokenId, IpfsUri[newLevel]);
-            fundSizes[tokenId] = fundSize; // Update stored fund size
+            // fundSizes[tokenId] = fundSize; // Update stored fund size
 
             emit LevelUpdated(tokenId, newLevel);
         }
@@ -111,6 +129,29 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     /*
      ********************
+     * MOCKING  *
+     ********************
+     */
+    // Mocking the change in Funds for testing purposes, this would be funds in a vault on a different contract
+
+    mapping(uint256 => uint256) private mockFundSizes;
+
+    function setMockFundSize(uint256 tokenId, uint256 _size) public {
+        require(ownerOf(tokenId) != address(0), "Token ID does not exist");
+        mockFundSizes[tokenId] = _size; // Update the mock fund size for the given tokenId
+
+        emit FundSizeChanged(tokenId, _size); // Emit event for the fund size change
+    }
+
+    function checkNewMockFundSize(
+        uint256 tokenId
+    ) public view returns (uint256) {
+        require(ownerOf(tokenId) != address(0), "Token ID does not exist");
+        return mockFundSizes[tokenId];
+    }
+
+    /*
+     ********************
      * HELPER FUNCTIONS *
      ********************
      */
@@ -125,28 +166,28 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // This function will return an array of token IDs owned by a given address
     function tokensOwnedBy(
-        address owner
+        address _owner
     ) public view returns (uint256[] memory) {
-        uint256 tokenCount = balanceOf(owner);
+        uint256 tokenCount = balanceOf(_owner);
         uint256[] memory tokensId = new uint256[](tokenCount);
         for (uint256 i = 0; i < tokenCount; i++) {
-            tokensId[i] = tokenOfOwnerByIndex(owner, i);
+            tokensId[i] = tokenOfOwnerByIndex(_owner, i);
         }
         return tokensId;
     }
 
     // function returns the number of NFTs owned by a specific address
-    function ownsAnyNFT(address owner) public view returns (bool) {
-        return balanceOf(owner) > 0;
+    function ownsAnyNFT(address _owner) public view returns (bool) {
+        return balanceOf(_owner) > 0;
     }
 
     // function is used to check the owner of a specific NFT, identified by its tokenId
     function ownsSpecificNFT(
-        address owner,
+        address _owner,
         uint256 tokenId
     ) public view returns (bool) {
         try this.ownerOf(tokenId) returns (address tokenOwner) {
-            return owner == tokenOwner;
+            return _owner == tokenOwner;
         } catch {
             return false;
         }
@@ -157,6 +198,15 @@ contract dynNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     ) public view returns (string memory) {
         require(index < IpfsUri.length, "Index out of bounds");
         return IpfsUri[index];
+    }
+
+    // Let the owner of the contract withdraw funds
+    function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+
+        (bool sent, ) = msg.sender.call{value: balance}("");
+        require(sent, "Failed to send Ether");
     }
 
     // The following functions are overrides required by Solidity.

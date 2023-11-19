@@ -1,6 +1,6 @@
 @solmate=lib/solmate/src/
 @std=lib/forge-std/src/
 @clones=lib/clones-with-immutable-args/src/
-@chainlink/=lib/chainlink-brownie-contracts/
+@chainlink/contracts/=lib/foundry-chainlink-toolkit/lib/chainlink-brownie-contracts/contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 forge-std/=lib/forge-std/src/
