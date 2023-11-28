@@ -171,7 +171,7 @@ contract dynNFT is
             0x55266d75D1a14E4572138116aF39863Ed6596E7F, // Tokenbound Account Proxy address
             bytes32(salt),
             chainId,
-            address(this), // Address of your contract
+            address(this), // Token contract address
             tokenId
         );
 
