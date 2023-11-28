@@ -3,13 +3,19 @@ pragma solidity ^0.8.18;
 
 contract MockERC6551Registry {
     function createAccount(
-        address implementation,
-        uint256 chainId,
-        address tokenContract,
+        // address implementation,
+        // uint256 chainId,
+        // address tokenContract,
         uint256 tokenId,
-        uint256 salt,
-        bytes calldata initData
-    ) external pure returns (address) {
+        uint256 salt
+    )
+        external
+        pure
+        returns (
+            // bytes calldata initData
+            address
+        )
+    {
         // Mock logic, return a predictable address
         return
             address(

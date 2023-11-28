@@ -104,7 +104,7 @@ contract dynNFT is
     }
 
     function publicMint() public payable {
-        require(msg.value == 0.01 ether, "Minting fee is 0.01 ETH");
+        require(msg.value == 0.001 ether, "Minting fee is 0.001 ETH");
         uint256 tokenId = _nextTokenId;
         _nextTokenId++;
         _safeMint(msg.sender, tokenId);

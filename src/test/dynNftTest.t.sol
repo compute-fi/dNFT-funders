@@ -43,7 +43,7 @@ contract dynNFTTest is Test {
     }
 
     function testPublicMintWithCorrectFee() public {
-        uint256 mintingFee = 0.01 ether;
+        uint256 mintingFee = 0.001 ether;
         address recipient = address(1); // Regular address, not a contract
         vm.deal(recipient, mintingFee); // Ensure the recipient has enough ETH
 
@@ -59,7 +59,7 @@ contract dynNFTTest is Test {
     }
 
     function testPublicMintWithInsufficientFeeShouldFail() public {
-        uint256 insufficientFee = 0.05 ether;
+        uint256 insufficientFee = 0.0005 ether;
         address recipient = address(1); // Regular address, not a contract
         vm.deal(recipient, insufficientFee); // Ensure the recipient has enough ETH
 
