@@ -11,7 +11,7 @@ contract DeployDynNFT is Script {
         // Fetch necessary configurations from HelperConfig if needed
 
         vm.startBroadcast();
-        dynNFT deployedDynNFT = new dynNFT();
+        dynNFT deployedDynNFT = new dynNFT(); // Deploy dynNFT contract
 
         console.log(
             "Deployed dynNFT successfully at:",

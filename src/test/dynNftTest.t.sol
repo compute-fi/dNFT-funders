@@ -4,12 +4,14 @@ pragma solidity ^0.8.4;
 import "forge-std/Test.sol";
 import {HelperConfig} from "script/HelperConfig.sol";
 import {dynNFT} from "src/dynamic-nft.sol";
+import {MockERC6551Registry} from "src/test/mocks/MockERC6551Registry.sol";
 
 contract dynNFTTest is Test {
     dynNFT public nft;
     address owner;
 
     function setUp() public {
+        // MockERC6551Registry mockRegistry = new MockERC6551Registry();
         nft = new dynNFT();
         owner = address(this);
     }
@@ -41,7 +43,7 @@ contract dynNFTTest is Test {
     }
 
     function testPublicMintWithCorrectFee() public {
-        uint256 mintingFee = 0.1 ether;
+        uint256 mintingFee = 0.01 ether;
         address recipient = address(1); // Regular address, not a contract
         vm.deal(recipient, mintingFee); // Ensure the recipient has enough ETH
 

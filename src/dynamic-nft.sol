@@ -10,6 +10,25 @@ import "@chainlink/contracts/src/v0.8/AutomationBase.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
+interface IERC6551Registry {
+    /**
+     * @notice Creates a token bound account for a non-fungible token.
+     * @param implementation The address of the token bound account proxy
+     * @param salt The unique salt value for account creation
+     * @param chainId The chain ID of the network
+     * @param tokenContract The address of the token contract
+     * @param tokenId The token ID for which to create the account
+     * @return account The address of the created token bound account
+     */
+    function createAccount(
+        address implementation,
+        bytes32 salt,
+        uint256 chainId,
+        address tokenContract,
+        uint256 tokenId
+    ) external returns (address account);
+}
+
 contract dynNFT is
     ERC721,
     ERC721Enumerable,
@@ -19,6 +38,8 @@ contract dynNFT is
 {
     uint256 private _nextTokenId;
     mapping(uint256 => uint256) private fundSizes; // Mapping to store fund sizes for each NFT
+    IERC6551Registry private ERC6551Registry;
+    mapping(uint256 => address) private tokenBoundAccountAddresses; // Mapping to store token-bound account addresses for each NFT
 
     // Metadata information for each stage of the NFT on IPFS.
     string[] IpfsUri = [
@@ -33,9 +54,18 @@ contract dynNFT is
     event Minted(address indexed to, uint256 indexed tokenId);
     event LevelUpdated(uint256 indexed tokenId, uint256 newLevel);
     event FundSizeChanged(uint256 indexed tokenId, uint256 newFundSize);
+    event TokenBoundAccountCreated(
+        address indexed creator,
+        address indexed tokenContract,
+        uint256 indexed tokenId,
+        address account
+    );
 
     constructor() ERC721("dNFTs", "dNFT") Ownable(msg.sender) {
         _nextTokenId = 1;
+        ERC6551Registry = IERC6551Registry(
+            0x000000006551c19487814612e58FE06813775758
+        );
     }
 
     function checkUpkeep(
@@ -74,7 +104,7 @@ contract dynNFT is
     }
 
     function publicMint() public payable {
-        require(msg.value == 0.1 ether, "Minting fee is 0.1 ETH");
+        require(msg.value == 0.01 ether, "Minting fee is 0.01 ETH");
         uint256 tokenId = _nextTokenId;
         _nextTokenId++;
         _safeMint(msg.sender, tokenId);
@@ -125,6 +155,36 @@ contract dynNFT is
             }
         }
         revert("Invalid Token ID or URI not set."); // In case the URI doesn't match any level
+    }
+
+    function createTokenBoundAccount(uint256 tokenId) external {
+        // Generate a unique salt
+        uint256 salt = uint256(
+            keccak256(abi.encodePacked(tokenId, block.timestamp, msg.sender))
+        );
+
+        // Chain ID for Goerli testnet
+        uint256 chainId = 5;
+
+        // Create a token-bound account
+        address tokenBoundAccount = ERC6551Registry.createAccount(
+            0x55266d75D1a14E4572138116aF39863Ed6596E7F, // Tokenbound Account Proxy address
+            bytes32(salt),
+            chainId,
+            address(this), // Address of your contract
+            tokenId
+        );
+
+        // Store the token-bound account address in a mapping
+        tokenBoundAccountAddresses[tokenId] = tokenBoundAccount;
+
+        // Emit the event with creator and token contract address
+        emit TokenBoundAccountCreated(
+            msg.sender,
+            address(this),
+            tokenId,
+            tokenBoundAccount
+        );
     }
 
     /*
@@ -207,6 +267,14 @@ contract dynNFT is
 
         (bool sent, ) = msg.sender.call{value: balance}("");
         require(sent, "Failed to send Ether");
+    }
+
+    // Token bound account Address Retrieval Function for a given Token ID
+    function getTokenBoundAccountAddress(
+        uint256 tokenId
+    ) public view returns (address) {
+        require(ownerOf(tokenId) != address(0), "Token ID does not exist");
+        return tokenBoundAccountAddresses[tokenId];
     }
 
     // The following functions are overrides required by Solidity.
